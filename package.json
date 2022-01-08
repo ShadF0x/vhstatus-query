@@ -1,16 +1,18 @@
 {
   "name": "vhstatus",
-  "version": "0.0.1",
-  "description": "Show online Valheim players",
+  "version": "0.0.2",
+  "description": "REST API to return a list of online Valheim players",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Clemens Nylandsted Klokmose",
+  "contributors": [
+    "Danil Bakanov"
+  ],
   "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1",
-    "ws": "^7.4.3"
+    "express": "^4.17.1"
   }
 }

@@ -2,22 +2,12 @@ const http = require("http")
 const express = require('express')
 const app = express()
 const fs = require("fs");
-const ws = require('ws');
 let users = {}
 
-app.use(express.static('www'))
-
 const server = http.createServer(app);
-const wss = new ws.Server({ server });
-
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
-wss.on('connection', socket => {
-  socket.on('message', message => console.log(message));
-  sendUsers();
-});
-
-function sendUsers() {
+app.get("/query/valheim", function(request, response){
 	fs.readFile(config.log, "utf8", (err, data) => {
 		if (err) {
 			console.log(err)
@@ -33,38 +23,35 @@ function sendUsers() {
 				if (handshake) {
 					let id = handshake[2];
 					let time = new Date(line.match(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/));
-					users[id] = {connected: time, disconnected: undefined, user: undefined};
+					users[id] = {connectedTimestamp: time, disconnectedTimestamp: undefined, name: undefined, connected: undefined};
 					lastUser = id;
 				}
 				if (disconnected) {
 					let id = disconnected[2];
 					if (!users[id]) continue;
 					let user = users[id];
-					let time = new Date(line.match(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/));
-					user.disconnected = time;
+					user.disconnectedTimestamp = new Date(line.match(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/));
+					user.connected = false;
 				}
 				if (user) {
 					if (lastUser) {
-						users[lastUser].user = user[2];
+						users[lastUser].name = user[2];
+						users[lastUser].connected = true;
 						for (let u in users) { // Clean up users showing up multiple times in the list
-							if (users[u].user == user[2] && u !== lastUser) delete users[u];
+							if (users[u].name === user[2] && u !== lastUser) delete users[u];
 						}
 						lastUser = undefined;
 					}
 				}
 			}
-			wss.clients.forEach((client) => {
-				let msg = {};
-				msg.users = users;
-				msg.serverName = config.serverName;
-				client.send(JSON.stringify(msg));
-			});
+			let msg = {};
+			msg.users = users;
+			msg.serverName = config.serverName;
+			return response.status(200).send(msg);
 		}
 	});
-}
+})
 
-setInterval(sendUsers, config.freq);
-
-server.listen(config.port, () => {
-  console.log(`Valheim status at http://localhost:${config.port}`)
+server.listen(config.port, config.ip, () => {
+	console.log(`Valheim status at http://${config.ip}:${config.port}/query/valheim`)
 })
